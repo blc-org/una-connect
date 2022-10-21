@@ -2,18 +2,23 @@
 import { decrypt, encrypt } from 'nostr-tools/nip04.js'
 import { IInvoice } from 'una-wrapper'
 import { config, finishedEventIds, pool, unaWrapper, updateFinishedEvents } from './index.js'
+import { Mutex } from 'async-mutex'
+
+const mutex = new Mutex()
 
 // @ts-ignore
 export async function onReceiveEvent(event, relay) {
-    if (finishedEventIds.includes(event.id)) {
-        console.log('Event id already processed', event.id)
-        return
-    }
+    await mutex.runExclusive(async () => {
+        if (finishedEventIds.includes(event.id)) {
+            console.log('Event id already processed', event.id)
+            return
+        }
 
-    if (event.kind === 4) {
-        const instruction = decrypt(config.node.nostr.privKey, event.pubkey, event.content)
-        await handleAction(event, instruction)
-    }
+        if (event.kind === 4) {
+            const instruction = decrypt(config.node.nostr.privKey, event.pubkey, event.content)
+            await handleAction(event, instruction)
+        }
+    })
 }
 
 export enum EAction {

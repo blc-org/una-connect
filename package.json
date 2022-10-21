@@ -21,6 +21,7 @@
     "scaffold": "tsc -p ./tsconfig.init.json && node dist/init.js"
   },
   "dependencies": {
+    "async-mutex": "^0.4.0",
     "nostr-tools": "^0.24.1",
     "una-wrapper": "^0.0.10-beta"
   }
