@@ -100,7 +100,7 @@ function validateInstruction(senderPubKey: string, instruction: string) {
                     !config.services.find((s) => s.pubKey === senderPubKey)?.authorizations.includes(EAction.payInvoice)
                 )
                     return false
-                if (parsed.payInvoice?.bolt11) return false
+                if (!parsed.payInvoice?.bolt11) return false
                 return true
             } else {
                 return false
