@@ -26,11 +26,14 @@ export enum EAction {
     payInvoice = 'payInvoice',
 }
 interface IInstruction {
+    id: string | null
     action: EAction
 
     createInvoice: {
-        amount: number
+        amount: number | null
+        amountMsats: number | null
         description: string | null
+        descriptionHash: string | null
     }
     payInvoice: {
         bolt11: string
@@ -41,12 +44,14 @@ async function handleAction(event: any, instruction: string) {
         const parsed: IInstruction = JSON.parse(instruction)
         console.log(`Action ${parsed.action} received. Event id ${event.id}`)
         if (parsed.action === EAction.createInvoice) {
-            await createInvoice(event.pubkey, {
+            await createInvoice(parsed.id, event.pubkey, {
                 amount: parsed.createInvoice.amount,
+                amountMsats: parsed.createInvoice.amountMsats,
                 description: parsed.createInvoice.description,
+                descriptionHash: parsed.createInvoice.descriptionHash,
             })
         }
-        if (parsed.action === EAction.payInvoice) {
+        else if (parsed.action === EAction.payInvoice) {
             await payInvoice(event.pubkey, { bolt11: parsed.payInvoice.bolt11 })
         }
     } else {
@@ -56,18 +61,27 @@ async function handleAction(event: any, instruction: string) {
 }
 
 async function createInvoice(
+    id: string | null,
     receiverPubKey: string,
-    { amount, description }: { amount: number; description: string | null },
+    { amount, amountMsats, description, descriptionHash }: { amount: number | null; amountMsats: number | null; description: string | null; descriptionHash: string | null },
 ) {
-    // @ts-ignore
-    const invoice = await unaWrapper.createInvoice({ amount, description: description ?? '' })
-    await sendResult(receiverPubKey, invoice)
+    try {
+        // @ts-ignore
+        const invoice = await unaWrapper.createInvoice({ amount, amountMsats, description, descriptionHash })
+        await sendResult(receiverPubKey, id ? { id, ...invoice } : invoice)
+    } catch (error) {
+        console.error({ error })
+    }
 }
 
 async function payInvoice(receiverPubKey: string, { bolt11 }: { bolt11: string }) {
-    // @ts-ignore
-    const invoice = await unaWrapper.payInvoice({ bolt11 })
-    await sendResult(receiverPubKey, invoice)
+    try {
+        // @ts-ignore
+        const invoice = await unaWrapper.payInvoice({ bolt11 })
+        await sendResult(receiverPubKey, invoice)
+    } catch (error) {
+        console.error({ error })
+    }
 }
 
 async function sendResult(receiverPubKey: string, result: IInvoice | unknown) {
@@ -79,7 +93,7 @@ async function sendResult(receiverPubKey: string, result: IInvoice | unknown) {
         created_at: Math.round(Date.now() / 1000),
     }
     // @ts-ignore
-    await pool.publish(event, (status, url) => {})
+    await pool.publish(event, (status, url) => { })
 }
 
 function validateInstruction(senderPubKey: string, instruction: string) {
@@ -93,7 +107,7 @@ function validateInstruction(senderPubKey: string, instruction: string) {
                         ?.authorizations.includes(EAction.createInvoice)
                 )
                     return false
-                if (!parsed.createInvoice?.amount) return false
+                if (!parsed.createInvoice?.amount && !parsed.createInvoice?.amountMsats) return false
                 return true
             } else if (parsed.action === EAction.payInvoice) {
                 if (
