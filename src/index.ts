@@ -20,7 +20,11 @@ export let finishedEventIds: string[] = []
 
 initEvent.on('initialized', () => {
     for (const relay of config.relays) {
-        pool.addRelay(relay, { read: true, write: true })
+        try {
+            pool.addRelay(relay, { read: true, write: true })
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     console.log('Una-connect initialized')

@@ -50,8 +50,7 @@ async function handleAction(event: any, instruction: string) {
                 description: parsed.createInvoice.description,
                 descriptionHash: parsed.createInvoice.descriptionHash,
             })
-        }
-        else if (parsed.action === EAction.payInvoice) {
+        } else if (parsed.action === EAction.payInvoice) {
             await payInvoice(event.pubkey, { bolt11: parsed.payInvoice.bolt11 })
         }
     } else {
@@ -93,7 +92,7 @@ async function sendResult(receiverPubKey: string, result: IInvoice | unknown) {
         created_at: Math.round(Date.now() / 1000),
     }
     // @ts-ignore
-    await pool.publish(event, (status, url) => { })
+    await pool.publish(event, (status, url) => {})
 }
 
 function validateInstruction(senderPubKey: string, instruction: string) {
